@@ -4,7 +4,44 @@ version = "0.1.0"
 description = "LLM Generated Python Docstrings"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
+
+[dependency-groups]
+training = [
     "torch>=2.10.0",
     "transformers>=5.3.0",
+    "mlflow>=2.0",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "peft>=0.14",
 ]
+serving = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8.0",
+    "ipykernel",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "N", "ANN", "RUF"]
+ignore = ["ANN101", "ANN102", "ANN401", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tredoc"]
+force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+"**/scripts/*" = ["ANN"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
