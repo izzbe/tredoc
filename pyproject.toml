@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "LLM Generated Python Docstrings"
 readme = "README.md"
 requires-python = ">=3.12"
+dependencies = [
+    "ipython>=9.11.0",
+]
 
 [dependency-groups]
 training = [
@@ -13,6 +16,10 @@ training = [
     "datasets>=3.0",
     "accelerate>=1.0",
     "peft>=0.14",
+    "xformers>=0.0.35",
+    "wandb>=0.25.0",
+    "unsloth>=2025.9.5",
+    "weave>=0.52.30",
 ]
 serving = [
     "fastapi>=0.115",
@@ -45,3 +52,9 @@ quote-style = "double"
 indent-style = "space"
 docstring-code-format = true
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
