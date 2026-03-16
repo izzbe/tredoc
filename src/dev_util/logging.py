@@ -1,24 +1,26 @@
 import logging
-import sys
 import logging.handlers
+
 from dev_util.dir import LOGS
 
 DEFAULT_FORMATTER = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    fmt="%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 LOGGING_LEVELS = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warning': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
 }
 
-def setup_logger():
+
+def setup_logger() -> None:
     root_logger = logging.getLogger()
-    if root_logger.handlers: return;
+    if root_logger.handlers:
+        return
 
     level = logging.INFO
 
@@ -29,14 +31,15 @@ def setup_logger():
     root_logger.addHandler(sh)
     root_logger.setLevel(logging.INFO)
 
-def get_logger(name: str, file_handler: bool, logging_level: str):
+
+def get_logger(name: str, file_handler: bool, logging_level: str) -> logging.Logger:
     logger = logging.getLogger(name)
     dir = LOGS / name
     dir.mkdir(parents=True, exist_ok=True)
-    filename = dir / 'logs.log'
+    filename = dir / "logs.log"
     handler = logging.handlers.TimedRotatingFileHandler(
         filename=filename,
-        when='midnight',
+        when="midnight",
         backupCount=10,
     )
     handler.setFormatter(DEFAULT_FORMATTER)
@@ -44,6 +47,3 @@ def get_logger(name: str, file_handler: bool, logging_level: str):
 
     logger.addHandler(handler)
     return logger
-
-
-
