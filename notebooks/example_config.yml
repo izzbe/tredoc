@@ -35,7 +35,6 @@ trainer_config:
   weight_decay: 0.001
   lr_scheduler_type: "linear"
   seed: 67
-  eos_token: "<|im_end|>"
 
 response_filter:
   instruction_part: "<|im_start|>user\n"

@@ -1,10 +1,11 @@
+from unsloth import FastLanguageModel
+from unsloth.chat_templates import get_chat_template, train_on_responses_only
+
 from dataclasses import asdict, dataclass
 from typing import Protocol
 
 from datasets import Dataset
 from transformers import PreTrainedTokenizerBase
-from unsloth import FastLanguageModel
-from unsloth.chat_templates import get_chat_template, train_on_responses_only
 from trl import SFTConfig, SFTTrainer
 from transformers import DataCollatorForSeq2Seq
 from dev_util.dir import OUTPUT
@@ -60,8 +61,9 @@ class TrainerConfig:
     weight_decay: float
     lr_scheduler_type: str
     seed: int
-    eos_token: str
     report_to: str = "wandb"
+    eval_strategy: str = "steps"
+    eval_steps: int = 5
 
 @dataclass
 class ResponseFilter:
@@ -121,8 +123,6 @@ class ModelFineTuner:
         self.tokenizer = get_chat_template(
             self.tokenizer, **asdict(config.tokenizer_args)
         )
-
-        self.tokenizer.eos_token = config.trainer_config.eos_token
 
         self.train_dataset = data_loader.load_dataset_train()
         self.train_dataset = data_loader.format_dataset_training(
