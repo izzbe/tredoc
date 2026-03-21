@@ -3,10 +3,13 @@ from typing import Protocol
 
 from datasets import Dataset
 from transformers import PreTrainedTokenizerBase
-from trl import SFTConfig, SFTTrainer
 from unsloth import FastLanguageModel
 from unsloth.chat_templates import get_chat_template, train_on_responses_only
+from trl import SFTConfig, SFTTrainer
+from transformers import DataCollatorForSeq2Seq
+from dev_util.dir import OUTPUT
 import wandb
+import yaml
 
 from dev_util.logging import get_logger, setup_logger
 
@@ -19,7 +22,6 @@ logger = get_logger(__name__, file_handler=True, logging_level="info")
 
 @dataclass
 class ModelArgs:
-    name: str
     model_name: str
     max_seq_length: int
     load_in_4bit: bool
@@ -47,7 +49,6 @@ class TokenizerArgs:
 
 @dataclass
 class TrainerConfig:
-    dataset_text_field: str
     per_device_train_batch_size: int
     gradient_accumulation_steps: int
     warmup_steps: int
@@ -59,8 +60,8 @@ class TrainerConfig:
     weight_decay: float
     lr_scheduler_type: str
     seed: int
-    report_to = "WandB"
-
+    eos_token: str
+    report_to: str = "wandb"
 
 @dataclass
 class ResponseFilter:
@@ -72,8 +73,10 @@ class ResponseFilter:
 class InferenceConfig:
     max_new_tokens: int
     temperature: float
-    top_p: float
-    top_k: float
+    top_p: float = 1
+    top_k: int = 0
+    min_p: float = 0
+    do_sample: bool = False
 
 
 @dataclass
@@ -81,10 +84,21 @@ class FineTuneRunConfig:
     model_args: ModelArgs
     peft_args: PEFTArgs
     tokenizer_args: TokenizerArgs
-    training_config: TrainerConfig
+    trainer_config: TrainerConfig
     response_filter: ResponseFilter
     inference_config: InferenceConfig
 
+def get_config(config_path: str) -> FineTuneRunConfig:
+    with open(config_path, mode='r') as f:
+        config_args = yaml.safe_load(f)
+    return FineTuneRunConfig(
+        model_args=ModelArgs(**config_args['model_args']),
+        peft_args=PEFTArgs(**config_args['peft_args']),
+        tokenizer_args=TokenizerArgs(**config_args['tokenizer_args']),
+        trainer_config=TrainerConfig(**config_args['trainer_config']),
+        response_filter=ResponseFilter(**config_args['response_filter']),
+        inference_config=InferenceConfig(**config_args['inference_config'])
+    )
 
 class DataLoader(Protocol):
     def load_dataset_train(self) -> Dataset: ...
@@ -92,7 +106,7 @@ class DataLoader(Protocol):
     def format_dataset_training(self, dataset: Dataset, tokenizer: PreTrainedTokenizerBase) -> Dataset: ...
     def format_dataset_inference(
         self, messages: list[Conversation], tokenizer: PreTrainedTokenizerBase
-    ) -> list[str]: ...
+    ): ...
     def get_generation_sample(self) -> Conversation | list[Conversation]: ...
 
 
@@ -103,10 +117,12 @@ class ModelFineTuner:
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             **asdict(config.model_args)
         )
-        self.model = FastLanguageModel.get_peft_model(**asdict(config.peft_args))
+        self.model = FastLanguageModel.get_peft_model(self.model, **asdict(config.peft_args))
         self.tokenizer = get_chat_template(
             self.tokenizer, **asdict(config.tokenizer_args)
         )
+
+        self.tokenizer.eos_token = config.trainer_config.eos_token
 
         self.train_dataset = data_loader.load_dataset_train()
         self.train_dataset = data_loader.format_dataset_training(
@@ -120,10 +136,12 @@ class ModelFineTuner:
 
         self.trainer = SFTTrainer(
             model=self.model,
-            tokenizer=self.tokenizer,
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
-            args=SFTConfig(**asdict(config.training_config)),
+            processing_class=self.tokenizer,
+            data_collator=DataCollatorForSeq2Seq(tokenizer=self.tokenizer),
+            args=SFTConfig(dataset_text_field="text",
+                           **asdict(config.trainer_config)),
         )
 
         self.trainer = train_on_responses_only(
@@ -143,12 +161,9 @@ class ModelFineTuner:
             messages = [messages]
 
         text = self.data_loader.format_dataset_inference(messages, self.tokenizer)
-        inputs = self.tokenizer(
-            text, return_tensors="pt", padding=True, truncation=True
-        ).to("cuda")
-        input_lens = inputs.attention_mask.sum(dim=1)
+        input_lens = text.attention_mask.sum(dim=1)
 
-        result = self.model.generate(**inputs, **asdict(self.config.inference_config))
+        result = self.model.generate(**text, use_cache=False, **asdict(self.config.inference_config))
         return [
             {
                 "input": self.tokenizer.decode(
@@ -162,35 +177,45 @@ class ModelFineTuner:
         ]
 
     def save(self):
+        self.run = wandb.init(project="tredoc", id=self.run.id, resume="must")
+        model_dir = OUTPUT / "final_model"
+        self.model.save_pretrained(model_dir)
         model_artifact = wandb.Artifact(
             name="model", type="model", metadata=asdict(self.config)
         )
-        model_name = self.config.model_args.name.split("/")[1]
-        model_artifact.add_dir(f"tredoc-{model_name}-merged")
+        model_artifact.add_dir(model_dir)
         self.run.log_artifact(model_artifact)
 
+        train_data_dir = OUTPUT / "train_data"
+        self.train_dataset.save_to_disk(train_data_dir)
         train_artifact = wandb.Artifact(
             name="train_data",
             type="dataset",
         )
-        train_artifact.add_file("./data/train.jsonl")
+        train_artifact.add_dir(train_data_dir)
         self.run.log_artifact(train_artifact)
 
-        test_artifact = wandb.Artifact(
-            name="test_data",
+
+        eval_data_dir = OUTPUT / "eval_data"
+        self.eval_dataset.save_to_disk(eval_data_dir)
+        eval_artifact = wandb.Artifact(
+            name="eval_data",
             type="dataset",
         )
-        test_artifact.add_file("./data/test.jsonl")
-        self.run.log_artifact(test_artifact)
+        eval_artifact.add_dir(eval_data_dir)
+        self.run.log_artifact(eval_artifact)
 
+        tok_dir = OUTPUT / "tokenizer"
+        self.tokenizer.save_pretrained(tok_dir)
         tokenizer_artifact = wandb.Artifact(name="tokenizer", type="dataset")
-        tokenizer_artifact.add_dir(f"tokenizer-{model_name}")
+        tokenizer_artifact.add_dir(tok_dir)
         self.run.log_artifact(tokenizer_artifact)
 
         sample_result = self.generate(self.data_loader.get_generation_sample())
-        table = wandb.Table(columns=sample_result[0].keys())
+        table = wandb.Table(columns=list(sample_result[0].keys()))
         for generation in sample_result:
             row = [item for _, item in generation.items()]
             table.add_data(*row)
 
         self.run.log({"sample_generations": table})
+        self.run.finish()

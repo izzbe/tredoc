@@ -45,5 +45,6 @@ def get_logger(name: str, file_handler: bool, logging_level: str) -> logging.Log
     handler.setFormatter(DEFAULT_FORMATTER)
     handler.setLevel(LOGGING_LEVELS[logging_level])
 
-    logger.addHandler(handler)
+    if file_handler:
+        logger.addHandler(handler)
     return logger

@@ -1,0 +1,46 @@
+model_args:
+  model_name: "unsloth/Qwen2-0.5B"
+  max_seq_length: 2048
+  load_in_4bit: True
+
+peft_args:
+  r: 16
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_alpha: 16
+  lora_dropout: 0
+  bias: "none"
+  use_gradient_checkpointing: "unsloth"
+  random_state: 67
+  use_rslora: False
+
+tokenizer_args:
+  chat_template: "qwen-2.5"
+
+trainer_config:
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  warmup_steps: 5
+  num_train_epochs: 1
+  max_steps: 30
+  learning_rate: 0.0002
+  logging_steps: 1
+  optim: "paged_adamw_8bit"
+  weight_decay: 0.001
+  lr_scheduler_type: "linear"
+  seed: 67
+  eos_token: "<|im_end|>"
+
+response_filter:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
+inference_config:
+  max_new_tokens: 128
+  temperature: 1.5
