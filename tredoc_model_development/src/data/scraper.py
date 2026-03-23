@@ -48,10 +48,10 @@ def delete_repo():
     
 def get_conn():
     return psycopg2.connect(
-        dbname="tredoc",
-        user="tredoc_user",
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        host="localhost"
+        host=os.getenv("DB_HOST")
     )
 
 def insert_repo(conn, clone_url, stars):
