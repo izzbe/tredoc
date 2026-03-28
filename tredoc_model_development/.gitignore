@@ -16,3 +16,5 @@ wandb
 #unsloth
 unsloth_compiled_cache
 unsloth_training_checkpoints
+
+.idea

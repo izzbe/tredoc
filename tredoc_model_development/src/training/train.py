@@ -50,6 +50,7 @@ class TokenizerArgs:
 
 @dataclass
 class TrainerConfig:
+    output_dir: str
     per_device_train_batch_size: int
     gradient_accumulation_steps: int
     warmup_steps: int
@@ -63,7 +64,11 @@ class TrainerConfig:
     seed: int
     report_to: str = "wandb"
     eval_strategy: str = "steps"
-    eval_steps: int = 5
+    eval_steps: int = 800
+    prediction_loss_only: bool = True
+    save_strategy: str = "steps"
+    save_steps: float = 3000
+    eval_on_start: bool = True
 
 @dataclass
 class ResponseFilter:
@@ -141,11 +146,12 @@ class ModelFineTuner:
             processing_class=self.tokenizer,
             data_collator=DataCollatorForSeq2Seq(tokenizer=self.tokenizer),
             args=SFTConfig(dataset_text_field="text",
+                           dataset_num_proc=4,
                            **asdict(config.trainer_config)),
         )
 
         self.trainer = train_on_responses_only(
-            self.trainer, **asdict(config.response_filter)
+            self.trainer, **asdict(config.response_filter), num_proc=1
         )
         self.train_stats = None
         self.data_loader = data_loader

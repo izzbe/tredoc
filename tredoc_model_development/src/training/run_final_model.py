@@ -55,7 +55,7 @@ class TredocDataLoader:
 
         self.raw_data['conversation'] = self.raw_data.apply(create_conversation, axis=1)
 
-        self.train_data = self.raw_data.sample(frac=0.9, random_state=6876)
+        self.train_data = self.raw_data.sample(frac=0.999, random_state=6876)
         self.test_data = self.raw_data.drop(self.train_data.index)
 
     def load_dataset_train(self) -> Dataset:
@@ -117,3 +117,13 @@ class TredocDataLoader:
         ]
         return messages
 
+def main():
+    loader = TredocDataLoader()
+    config = tr.get_config('final_model_config.yml')
+    run = init_run(config)
+    refit = tr.ModelFineTuner(config, loader, run)
+    refit.train()
+    refit.save()
+
+if __name__ == "__main__":
+    main()
