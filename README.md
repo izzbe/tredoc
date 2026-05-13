@@ -14,7 +14,7 @@ curl -X POST http://localhost:8080/model/v1/generate \
 
 ```
 ┌─────────────┐     POST /model/v1/generate      ┌────────────────┐
-│   Client    │ ──────────────────────────────►  │  FastAPI (8080)│
+│   Client    │ ──────────────────────────────►  │ FastAPI (8080) │
 └─────────────┘                                  └───────┬────────┘
                                                          │ OpenAI-compat chat
                                                          ▼
