@@ -34,9 +34,9 @@ curl -X POST http://localhost:8080/model/v1/generate \
 
 ### Model: Qwen2.5-Coder-1.5B-Instruct
 
-Several base models were fine-tuned on the same dataset and evaluated head-to-head using GPT-4o as a judge scoring docstring correctness, completeness, and adherence to the requested style. Qwen2.5-Coder-1.5B-Instruct consistently outperformed the other candidates after fine-tuning, making it the clear choice despite being one of the smaller options.
+Several base models were fine-tuned on the same dataset and evaluated head-to-head using GPT-4o as a judge scoring docstring correctness, completeness, and adherence to the requested style. Qwen2.5-Coder-1.5B-Instruct consistently outperformed DeepSeek-Coder-1.3B-Instruct, SmolLM2-1.7B-Instruct, Gemma-2-2B-it, CodeGemma-2B, and Phi-3.5-mini-instruct after fine-tuning, making it the clear choice despite being one of the smaller options.
 
-Fine-tuning used LoRA (rank 16) via [Unsloth](https://github.com/unslothai/unsloth) for memory-efficient training on a single GPU. Adapters target all attention and MLP projection layers. The final artifact is tracked in Weights & Biases as `Qwen2.5-Coder-1.5B-Instruct_20260326_233550`.
+Fine-tuning used LoRA (rank 16) via [Unsloth](https://github.com/unslothai/unsloth) for memory-efficient training on a single GPU. Adapters target all attention and MLP projection layers.
 
 ### Inference: vLLM
 
@@ -61,10 +61,6 @@ The signature is extracted from the source at inference time using a regex so ca
 **Prerequisites:** Docker, Docker Compose, NVIDIA GPU with the NVIDIA Container Toolkit installed.
 
 ```bash
-# Download the model artifact (requires W&B login)
-cd tredoc_serving
-python app/util/download.py
-
 # Start all services
 docker compose up --build
 ```
