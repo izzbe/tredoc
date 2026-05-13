@@ -21,11 +21,10 @@ services:
               count: 1
               capabilities: [gpu]
     volumes:
-      - hf-cache:/root/.cache/huggingface
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - ./app/artifacts/model:/model
     command: >
-      --model Qwen/Qwen2.5-Coder-0.5B-Instruct
+      --model /model
+      --served-model-name tredoc
       --host 0.0.0.0
       --port 8000
     ports:
@@ -44,4 +43,3 @@ services:
 
 volumes:
   pgdata:
-  hf-cache:

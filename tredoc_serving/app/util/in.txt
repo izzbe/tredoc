@@ -1,0 +1,38 @@
+def reconcile_transactions(
+    ledger: list[dict[str, float]],
+    adjustments: dict[str, float] | None = None,
+    tolerance: float = 0.01,
+    strict: bool = False,
+) -> tuple[bool, list[str]]:
+    if not isinstance(ledger, list):
+        raise TypeError(f"ledger must be a list, got {type(ledger).__name__}")
+
+    if tolerance < 0:
+        raise ValueError(f"tolerance must be non-negative, got {tolerance}")
+
+    if adjustments is None:
+        adjustments = {}
+
+    messages = []
+    all_reconciled = True
+
+    for entry in ledger:
+        if not isinstance(entry, dict):
+            raise TypeError(f"Each ledger entry must be a dict, got {type(entry).__name__}")
+
+        for account, balance in entry.items():
+            adj = adjustments.get(account, 0.0)
+            residual = balance + adj
+
+            if abs(residual) <= tolerance:
+                messages.append(f"{account}: reconciled (residual={residual:.4f})")
+            else:
+                all_reconciled = False
+                messages.append(f"{account}: UNRECONCILED (residual={residual:.4f})")
+
+    if strict and not all_reconciled:
+        raise ValueError(
+            "Strict mode: not all accounts reconciled.\n" + "\n".join(messages)
+        )
+
+    return all_reconciled, messages
