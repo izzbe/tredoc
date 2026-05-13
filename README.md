@@ -13,8 +13,8 @@ curl -X POST http://localhost:8080/model/v1/generate \
 ## Architecture
 
 ```
-┌─────────────┐     POST /model/v1/generate     ┌────────────────┐
-│   Client    │ ──────────────────────────────► │  FastAPI (8080) │
+┌─────────────┐     POST /model/v1/generate      ┌────────────────┐
+│   Client    │ ──────────────────────────────►  │  FastAPI (8080)│
 └─────────────┘                                  └───────┬────────┘
                                                          │ OpenAI-compat chat
                                                          ▼
