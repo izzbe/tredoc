@@ -252,6 +252,6 @@ Returns:
 | Base model | Qwen2.5-Coder-1.5B-Instruct |
 | Fine-tuning method | LoRA (r=16, α=16) |
 | Training framework | Unsloth + TRL SFTTrainer |
-| Dataset | ~61k function/docstring pairs scraped from GitHub (≥100 stars) |
+| Dataset | ~1M function/docstring pairs scraped from GitHub (≥100 stars) |
 | Supported styles | `google`, `numpy`, `sphinx`, `plain` |
 
